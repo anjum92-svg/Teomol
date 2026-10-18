@@ -1,1 +1,42 @@
+name: Build Molly APK
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Free disk space
+        uses: ./.github/actions/disk-cleanup
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build Docker image
+        run: docker compose build
+        working-directory: reproducible-builds
+
+      - name: Build APK
+        run: docker compose run assemble
+        working-directory: reproducible-builds
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: molly-apks
+          path: reproducible-builds/outputs/apk/*/release/*.apk
+          if-no-files-found: error
